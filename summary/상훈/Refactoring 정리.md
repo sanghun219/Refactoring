@@ -385,3 +385,366 @@
 
 - **경계 조건 검사하기**
   - 문제가 생길 가능성이 있는 경계 조건을 생각해보고 그 부분을 집중적으로 테스트하자.
+
+
+
+## Chapter 06
+
+- **함수 추출하기**
+
+  - ```javascript
+    // 변경전
+    function printOwing(invoice) {
+        printBanner();
+        let outstanding = calculateOutstanding();
+        
+        //세부 사항 출력
+        console.log(`고객명: ${invoice.customer}`);
+        console.log(`채무액: ${outstanding}`);
+    }
+    
+    // 변경후
+    function printOwing(invoice) {
+        printBanner();
+        let outstanding = calculateOutStanding();
+        printDetails(outstanding);
+        
+        function printDetails(outstanding) {
+        //세부 사항 출력
+        console.log(`고객명: ${invoice.customer}`);
+        console.log(`채무액: ${outstanding}`);
+        }
+    }
+    ```
+
+  - 코드 조각을 찾아 무슨 일을 하는지 파악한 다음, 독립된 함수로 추출하고 목적에 맞는 이름을 붙인다.
+
+  - **재사용성**을 기준으로, 두 번 이상 사용될 코드는 함수로 만들고, 한 번만 쓰이는 코드는 인라인 상태로 놔둔다.
+
+    - 재사용성도 좋지만, 코드를 보고 무슨 일을 하는지 파악하기 어렵다면 그 부분을 함수로 추출한 뒤 '무슨 일'에 걸맞는 이름을 짓는 방식을 선호한다.
+    - 이 원칙을 사용하면, 함수의 길이들이 굉장히 짧게 바뀐다.
+    - 함수가 짧으면 캐싱하기가 더 쉽기 때문에 컴파일러가 최적화하는 데 유리할 때가 많다.
+
+  - 절차
+
+    - 함수를 새로 만들고 목적을 잘 드러내는 이름을 붙인다.('어떻게'가 아닌 '무엇을' 하는지가 드러나야 한다.)
+    - 추출한 코드를 원본 함수에서 복사하여 새 함수에 붙여놓는다.
+    - 추출한 코드 중 원본 함수의 지역 변수를 참조하거나 추출한 함수의 유효범위를 벗어나는 변수는 없는지 검사한다. 있다면 매개변수로 전달한다.
+    - 변수를 다 처리했으면 컴파일한다.
+    - 원본 함수에서 추출한 코드 부분을 새로 만든 함수를 호출하는 문장으로 바꾼다.
+    - 테스트한다.
+    - 다른 코드에 방금 추출한 것과 똑같거나 비슷한 코드가 없는지 살핀다. 있다면 방금 추출한 새 함수를 호출하도록 바꿀지 검토한다.
+
+    
+
+- **함수 인라인하기**
+
+  - ```javascript
+    // 변경전
+    function getRating(driver) {
+        return moreThanFiveLateDeliveries(driver) ? 2 : 1;
+    }
+    
+    function moreThanFiveLateDeliveries(driver) {
+        return driver.nmuberOfLateDeliveries > 5;
+    }
+    
+    // 변경후
+    function getRating(driver) {
+        return (driver.numberOfLateDeliveries > 5) ? 2 : 1;
+    }
+    ```
+
+  - 함수 추출하기와 반대되는 리팩터링
+
+    - 함수 본문이 이름만큼 명확한 경우 사용
+    - 함수 본문을 이름만큼 깔끔하게 리팩터링한 경우 사용
+
+  - 절차
+
+    - 다형 메서트인지 확인한다. (서브클래스에서 오버라이드하는 메서드는 인라인하면 안 된다.)
+    - 인라인할 함수를 호출하는 곳을 모두 찾는다.
+    - 각 호출문을 함수 본문으로 교체한다.
+    - 하나씩 교체할 때마다 테스트한다.
+    - 함수 정의를 삭제한다.
+
+    
+
+- **변수 추출하기**
+
+  - ```javascript
+    // 변경전
+    return order.quantity * order.itemPrice - Math.max(0,order.quantity - 500) * order.itemPrice * 0.05 + Math.min(order.quantity * order.itemPrice * 0.1, 100);
+    
+    // 변경후
+    const basePrice = order.quantity * order.itemPrice;
+    const quantityDisCount = Math.max(0,order.quantity - 500) * order.itemPrice * 0.05;
+    const shipping = Math.min(basePrice * 0.1, 100);
+    return basePrice - quantityDiscount + shipping;
+    ```
+
+  - 표현식이 너무 복잡해서 이해하기 어려울 때 지역 변수를 활용하여 쉽게 만든다.
+
+  - 디버거에 중단점 지정이나 상태 출력 문장을 추가할 수 있어 디버깅이 쉬워진다.
+
+  - 현재 함수 안에서만 의미가 있다면 변수로 추출하는 것이 좋다.
+
+  - 절차
+
+    - 추출하려는 표현식에 부작용은 없는지 확인한다.
+    - 불변 변수를 하나 선언하고 이름을 붙일 표현식의 복제본을 대입한다.
+    - 원본 표현식을 새로 만든 변수로 교체한다.
+    - 테스트한다.
+    - 표현식을 여러 곳에서 사용한다면 각각을 새로 만든 변수로 교체한다. 하나 교체할 때마다 테스트 한다.
+
+- **변수 인라인하기**
+
+  - ```javascript
+    // 변경전
+    let basePrice = anOrder.basePrice;
+    return (basePrice > 1000);
+    
+    // 변경후
+    return anOrder.basePrice > 1000;
+    ```
+
+  - 변수 추출하기와 반대되는 리팩터링
+
+    - 이름이 원래 표현식과 다를 바 없을때 사용
+
+  - 절차
+
+    - 대입문의 우변에서 부작용이 생기지는 않는지 확인한다.
+    - 변수가 불변으로 선언되지 않았다면 불변으로 만든 후 테스트한다.
+    - 이 변수를 가장 처음 사용하는 코드를 찾아서 대입문 우변의 코드로 바꾼다.
+    - 테스트한다.
+    - 변수를 사용하는 부분을 모두 교체할 때까지 이 과정을 반복한다.
+    - 변수 선언문과 대입문을 지운다.
+    - 테스트한다.
+
+    
+
+- **함수 선언 바꾸기**
+
+  - ```javascript
+    // 변경전
+    function circum(radius) {...}
+    
+    // 변경후
+    function circumference(radius) {...}
+    ```
+
+  - 이름이 좋으면 함수의 구현 코드를 살펴볼 필요 없이 호출문만 보고도 무슨 일을 하는지 파악할 수 있다.
+
+  - 좋은 이름을 떠올리는 법
+
+    - 주석을 이용해 함수의 목적을 설명해보는 것.
+
+  - 절차
+
+    - 매개변수를 제거하려거든 먼저 함수 본문에서 제거 대상 매개변수를 참조하는 곳은 없는지 확인한다.
+    - 메서드 선언을 원하는 형태로 바꾼다.
+    - 기존 메서드 선언을 참조하는 부분을 모두 찾아서 바뀐 형태로 수정한다.
+    - 테스트한다.
+
+    
+
+- **변수 캡슐화하기**
+
+  - ```javascript
+    // 변경전
+    let defaultOwner = {firstName: "마틴", lastName: "파울러"}
+    
+    // 변경후
+    let defaultOwnerData = {firstName: "마틴", lastName: "파울러"};
+    export function defaultOwner()	{return defaultOwnerData;}
+    export function setDefaultOwner(arg) {defaultOwnerData = arg;}
+    ```
+
+  - 함수는 데이터보다 다루기가 수월하다.
+
+    - 이름을 바꾸거나 다른 모듈로 옮기기 쉽다.
+    - 기존함수를 그대로 둔 채 전달함수로 활용할 수도 있다.
+
+  - 접근할 수 있는 범위가 넓은 데이터를 옮길 때는 먼저 그 데이터로의 접근을 독점하는 함수를 만드는 식으로 캡슐화하는 것이 가장 좋은 방법이다.
+
+  - 데이터 캡슐화는 데이터를 변경하고 사용하는 코드를 감시할 수 있는 확실한 통로가 되어주기 때문에 데이터 변경 전 검증이나 변경 후 추가 로직을 쉽게 끼워 넣을 수 있다.
+
+  - 데이터의 유효범위가 넓으면 캡슐화 해야한다.
+
+  - 절차
+
+    - 변수로의 접근과 갱신을 전담하는 캡슐화 함수들을 만든다.
+    - 정적 검사를 수행한다.
+    - 변수를 직접 참조하던 부분을 모두 적절한 캡슐화 함수 호출로 바꾼다. 하나씩 바꿀 때마다 테스트 한다.
+    - 변수의 접근 범위를 제한한다.
+    - 테스트한다.
+    - 변수 값이 레코드라면 레코드 캡슐화하기를 적용할지 고려해본다.
+
+
+
+- **변수 이름 바꾸기**
+
+  - ```javascript
+    // 변경전
+    let a = height * width;
+    
+    // 변경후
+    let area = height * width;
+    ```
+
+  - 함수 호출 한 번으로 끝나지 않고 값이 영속되는 필드의 경우 이름에 더 신경써야한다.
+
+  - 절차
+
+    - 폭넓게 쓰이는 변수라면 변수 캡슐화하기를 고려한다.
+
+    - 이름을 바꿀 변수를 참조하는 곳을 모두 찾아서, 하나씩 변경한다.
+
+    - 테스트한다.
+
+      
+
+- **매개변수 객체 만들기**
+
+  - ```javascript
+    // 변경전
+    function amountInvoiced(startDate, endDate) {...}
+    function amountReceived(startDate, endDate) {...}
+    function amountOverdue(startDate, endDate) {...}
+    
+    // 변경후
+    function amountInvoicde(aDateRange) {...}
+    function amountReceived(aDateRange) {...}
+    function amountOverdue(aDateRange) {...}
+    ```
+
+  - 데이터 항목 여러 개가 여러 함수에서 몰려다니며 사용되는 경우 데이터 구조 하나로 묶어준다.
+
+  - 데이터 구조화 리팩터링을 통해 데이터 구조를 이용하는 형태로 프로그램이 재구성된다.
+
+  - 데이터 구조화를 통해 문제 영역을 훨씬 간결하게 표현하는 새로운 추상 개념으로 격상되면서, 코드의 개념적인 그림을 다시 그릴수도 있다.
+
+  - 절차
+
+    - 적당한 데이터 구조가 아직 마련되어 있지 않다면 새로 만든다.
+
+    - 테스트한다.
+
+    - 함수 선언 바꾸기로 새 데이터 구조를 매개변수로 추가한다.
+
+    - 테스트한다.
+
+    - 함수 호출 시 새로운 데이터 구조 인스턴스를 넘기도록 수정한다. 하나씩 수정할 때마다 테스트한다.
+
+    - 기존 매개변수를 사용하던 코드를 새 데이터 구조의 원소를 사용하도록 바꾼다.
+
+    - 다 바꿨다면 기존 매개변수를 제거하고 테스트한다.
+
+      
+
+- **여러 함수를 클래스로 묶기**
+
+  - ```javascript
+    // 변경전
+    function base(aReading) {...}
+    function taxbleCharge(aReading) {...}
+    function calculateBaseCharge(aReading) {...}
+    
+    // 변경후
+    class Reading {
+    	base() {...}
+    	taxbleCharge() {...}
+    	calculateBaseCharge() {...}
+    }
+    ```
+
+  - 공통 데이터를 중심으로 긴밀하게 엮여 작동하는 함수 무리를 발견하면 클래스로 묶는다.
+
+  - 클래스로 묶을 때의 두드러진 장점은 클라이언트가 객체의 핵심 데이터를 변경할 수 있고, 파생 객체들을 일관되게 관리할 수 있다.
+
+  - 절차
+
+    - 함수들이 공유하는 공통 데이터 레코드를 캡슐화한다.
+
+    - 공통 레코드를 사용하는 함수 각각을 새 클래스로 옮긴다.
+
+    - 데이터를 조작하는 로직들은 함수로 추출해서 새 클래스로 옮긴다.
+
+      
+
+- **여러 함수를 변환 함수로 묶기**
+
+  - ```javascript
+    // 변경전
+    function base(aReading) {...}
+    function taxableCharge(aReading) {...}
+    
+    // 변경후
+    function enrichReading(argReading) {
+    	const aReading = _.cloneDeep(argReading);
+    	aReading.baseCharge = base(aReading);
+    	aReading.taxableCharge = taxableCharge(aReading);
+    	return aReading;
+    }
+    ```
+
+  - 어떤 정보가 사용되는 곳마다 같은 도출 로직이 반복되는 경우, 도출 작업들을 한데로 모아 검색과 갱신을 일관된 장소에서 처리하고 중복도 막을수 있다.
+
+  - 변환 함수를 이용하여 원본 데이터를 입력 받아서 필요한 정보를 모두 도출한 뒤, 각각을 출력 데이터의 필드에 넣어 반환한다.
+
+  - 여러 함수를 클래스로 묶기를 대용으로 사용 가능하다.
+
+    - 원본 데이터가 코드 안에서 갱신될 때는 클래스로 묶는게 낫다. 변환 함수로 묶으면 가공한 데이터를 새로운 레코드에 저장하므로, 원본데이터가 수정되면 일관성이 깨질 수 있기 때문이다.
+
+  - 절차
+
+    - 변환할 레코드를 입력받아서 값을 그대로 반환하는 변환 함수를 만든다.
+
+    - 묶을 함수 중 함수 하나를 골라서 본문 코드를 변환 함수로 옮기고, 처리 결과를 레코드에 새 필드로 기록한다. 그런 다음 클라이언트 코드가 이 필드를 사용하도록 수정한다.
+
+    - 테스트한다.
+
+    - 나머지 관련 함수도 위 과정에 따라 처리한다.
+
+      
+
+- **단계 쪼개기**
+
+  - ```javascript
+    // 변경전
+    const orderData = orderString.split(/\s+/);
+    const productPrice = priceList[orderData[0].split("-")[1]];
+    const orderPrice = parseInt(orderData[1]) * productPrice;
+    
+    // 변경후
+    const orderRecord = parseOrder(order);
+    const orderPrice = price(orderRecord, priceList);
+    
+    function parseOrder(aString) {
+    	const values = aString.split(/\s+/);
+    	return ({
+    		productID: values[0].split("-")[1],
+    		quantity: parseInt(values[1]),
+    	});
+    }
+    function price(order, priceList) {
+    	return order.quantity * priceList[order.productID];
+    }
+    ```
+
+  - 서로 다른 두 대상을 한꺼번에 다루는 코드에 적용
+
+    - 동작을 연이은 두 단계로 쪼개는 것이 가장 편리한 방식
+      - 각 단계는 자신만의 문제에 집중하기 때문에 나머지 단계에 관해서는 자세히 몰라도 이해가능
+    - 규모에 관계없이 여러 단계로 분리하면 좋을만한 코드를 발견할 때마다 기본적인 단계쪼개기 리팩터링을 진행한다.
+
+  - 절차
+
+    - 두 번째 단계에 해당하는 코드를 독립 함수로 추출한다.
+    - 테스트한다.
+    - 중간 데이터 구조를 만들어서 앞에서 추출한 함수의 인수로 추가한다.
+    - 테스트한다.
+    - 추출한 두 번째 단계 함수의 매개변수를 하나씩 검토한다. 그중 첫 번째 단계에서 사용되는 것은 **중간 데이터 구조**(매개변수 줄이는용)로 옮긴다. 하나씩 옮길 때마다 테스트한다.
+    - 첫 번째 단계 코드를 함수로 추출하면서 중간 데이터 구조를 반환하도록 만든다.
+
