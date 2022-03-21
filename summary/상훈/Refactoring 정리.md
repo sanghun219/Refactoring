@@ -748,3 +748,172 @@
     - 추출한 두 번째 단계 함수의 매개변수를 하나씩 검토한다. 그중 첫 번째 단계에서 사용되는 것은 **중간 데이터 구조**(매개변수 줄이는용)로 옮긴다. 하나씩 옮길 때마다 테스트한다.
     - 첫 번째 단계 코드를 함수로 추출하면서 중간 데이터 구조를 반환하도록 만든다.
 
+
+
+## Chapter 7
+
+- **레코드 캡슐화하기**
+
+  - ```javascript
+    organization = {name: "애크미 구스베리", country: "GB"};
+    =>
+    class Organization {
+    	constructor(data) {
+    	this._name = data.name;
+    	this._country = data.country;
+    	}
+    	get name() {return this._name;}
+    	set name(arg) {this._name = arg;}
+    	get country() {return this._country;}
+    	set country(arg) {this._country = arg;}
+    }
+    ```
+
+  - 레코드 형식은 데이터를 직관적으로 묶을수 있다는 장점이 있지만, 계산해서 얻을수 있는 값과 그렇지않은 값을 구분해 저장하는 점이 번거롭다
+
+  - 클래스를 이용하면 데이터를 캡슐화하여 제공할 수 있다
+
+  - (c++에 레코드 타입이 있나..?)
+
+    
+
+- **컬렉션 캡슐화하기**
+
+  - ```javascript
+    class Person {
+    	get courses() {return this._courses;}
+    	set courses(aList) {this._courses = aList;}
+    }
+    =>
+    class Person {
+    	get courses() {return this._courses.slice();}
+    	addCourse(aCourse) {...}
+    	removeCourse(aCourse) {...}
+    }
+    ```
+
+  - 컬렉션 변수로의 접근을 캡슐화하면서 게터가 컬렉션 자체를 반환하도록 한다면, 그 컬렉션을 감싼 클래스가 눈치채지 못하는 상태에서 컬렉션의 원소들이 바뀔수 있다
+
+    - javascript만 그런가..?
+
+  - 컬렉션 게터를 제공하되 내부 컬렉션의 복사본을 반환하여 해결할 수 있다.
+
+    
+
+- **기본형을 객체로 바꾸기**
+
+  - ```javascript
+    ordrs.filter(o=> "high" === o.priority || "rush" === o.priority);
+    =>
+    orders.filter(o => o.priority.higherThan(new Priority("normal")))
+    ```
+
+  - 단순한 출력 이상의 기능이 필요해지는 순간 그 데이터를 표현하는 전용 클래스를 정의하자
+
+
+
+- **임시** **변수를 질의 함수로 바꾸기**
+
+  - ```javascript
+    const basePrice = this._quantity * this._itemPrice;
+    if (basePrice > 1000)
+    	return basePrice * 0.95;
+    else
+    	return basePrice * 0.98;
+    =>
+    get basePrice() {this._quantity * this._itemPrice;}
+    ...
+    if (this.basePrice > 1000)
+    	return this.basePrice * 0.95;
+    else
+    	return this.basePrice * 0.98;
+    ```
+
+  - 변수 대신 함수로 만들어두면 비슷한 계산을 수행하는 다른 함수에서도 사용할 수 있어서 코드중복이 줄어든다.
+
+    - 클래스 안에서 적용할 때 효과가 크다. 클래스는 추출한 메서드들에 공유 컨텍스트를 제공하기 때문이다.
+
+
+
+- **클래스 추출하기**
+
+  - ```javascript
+    class Person {
+    	get officeAreaCode() {return this._officeAreaCode;}
+    	get officeNumber() {return this._officeNumber;}
+    }
+    =>
+    class Person {
+    	get officeAreaCode() {return this._telephoneNumber.areaCode;}
+    	get officeNumber() {return this._telephoneNumber.number;}
+    }
+    class TelephoneNumber {
+    	get areaCode() {return this._areaCode;}
+    	get number() {return this._number;}
+    }
+    ```
+
+  - 메서드와 데이터가 너무 많은 클래스는 이해하기가 쉽지 않으니 잘 살펴보고 적절히 분리하는것이 좋다.
+
+
+
+- **클래스 인라인하기** (반대 리팩터링 => 클래스 추출하기)
+
+  - ```javascript
+    class Person {
+    	get officeAreaCode() {return this._telephoneNumber.areaCode;}
+    	get officeNumber() {return this._telephoneNumber.number;}
+    }
+    class TelephoneNumber {
+    	get areaCode() {return this._areaCode;}
+    	get number() {return this._number;}
+    }
+    =>
+    class Person {
+    	get officeAreaCode() {return this._officeAreaCode;}
+    	get officeNumber() {return this._officeNumber;}
+    }
+    ```
+
+  - 제 역할을 못하는 클래스는 인라인한다.
+
+  - 두 클래스의 기능을 지금과 다르게 배분하고 싶을때 인라인한다.
+
+
+
+- **위임 숨기기**
+  - ```javascript
+    manager = aPerson.department.manager;
+    =>
+    manager = aPerson.manager;
+    
+    class Person {
+    	get manager() {return this.department.manager;}
+    }
+    ```
+
+  - 모듈화 설계를 제대로 하는 핵심은 캡슐화이다. 캡슐화는 모듈들이 시스템의 다른 부분에 대해 알아야 할 내용을 줄여준다.
+
+  - 위임 객체를 숨기면 수정 사항이 발생했을 때 의존성이 제거되어 클라이언트 코드를 수정하지 않아도 된다.
+
+
+
+- **중개자 제거하기** (반대 리팩터링 => 중개자 제거하기)
+
+  - ```javascript
+    manager = aPerson.manager;
+    
+    class Person {
+    	get manager() {return this.department.manager;}
+    }
+    =>
+    manager = aPerson.department.manager;
+    ```
+
+  - 클라이언트가 위임 객체의 또 다른 기능을 사용하고 싶을 때마다 서버에 위임 메서드를 추가해야하는데, 이렇게 **기능을 추가하다 보면 단순히 전달만 하는 위임 메서드들**이 점점 성가셔진다.
+
+
+
+- **알고리즘 교체하기**
+  - 문제를 더 확실히 이해하고 훨씬 쉽게 해결하는 방법을 발견하면 교체한다.
+  - 같은 코드의 신뢰성있는 라이브러리가 있어도 교체한다.
